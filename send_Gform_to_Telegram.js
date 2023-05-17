@@ -5,13 +5,19 @@ function onFormSubmit() {
   var form = FormApp.openById(editformID);
   var formResponses = form.getResponses();
   var latestResponse = formResponses[formResponses.length - 1];
-  console.log(latestResponse);
   var response = latestResponse.getItemResponses();
   var message = '';
   for (var i = 0; i < response.length; i++) {
     var question = response[i].getItem().getTitle();
     var answer = response[i].getResponse();
-    message += question + ' : ' + answer + '\n';
+    if(question === 'Employee ID' || question === 'Team name') {
+      message += '# ' + question + ': ' + answer + '\n\n';
+    } else {
+      message += '# ' + question + '\n' + answer + '\n\n';
+    }
+      
+    
+
   }
   
   // Find @BotFather => Create and add bot token to target Telegram group
