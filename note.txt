@@ -1,3 +1,6 @@
+ // create new sheet with name paste data to this sheet
+var checkedDataSheet = spreadsheet.getSheetByName("checked_data") || spreadsheet.insertSheet().setName("checked_data");
+  
 function test() {
   var array1 = ["A1","A2","A56","B6","C67","B9"];
   columnCounts = countValuesInColumns(array1);
