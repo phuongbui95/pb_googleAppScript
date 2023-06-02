@@ -3,21 +3,19 @@ function create_checked_data() {
   // select Spreadsheet to work
   var spreadsheet = SpreadsheetApp.getActive(); 
   // pick sheet named "raw_data" in selected spreadsheet
-  var sheetRaw = spreadsheet.getSheetByName('raw_data');
+  var rawDataSheet = spreadsheet.getSheetByName('raw_data');
   
-  // create new sheet with name and paste data to this sheet
-  if(!spreadsheet.getSheetByName("checked_data")) {
-    spreadsheet.insertSheet().setName("checked_data");
-  };
-  var sheetChecked = spreadsheet.getSheetByName("checked_data");
-  var rawRange = sheetRaw.getDataRange().getValues();
-  var checkedRange = sheetChecked.getRange(1, 1, rawRange.length, rawRange[0].length);
+  // create new sheet and paste data to this sheet
+  var checkedDataSheet = spreadsheet.getSheetByName("checked_data") || 
+  spreadsheet.insertSheet().setName("checked_data");
+  var rawRange = rawDataSheet.getDataRange().getValues();
+  var checkedRange = checkedDataSheet.getRange(1, 1, rawRange.length, rawRange[0].length);
   checkedRange.setValues(rawRange);
   
 
   // hightlight the heading row of dataset
-  var lastColumnOfA1Row = sheetChecked.getRange("A1").getLastColumn();
-  sheetChecked.getRange("A1:"+lastColumnOfA1Row).setBackground('#b7b7b7');
+  var lastColumnOfA1Row = checkedDataSheet.getRange("A1").getLastColumn();
+  checkedDataSheet.getRange("A1:"+lastColumnOfA1Row).setBackground('#b7b7b7');
 
   // Hide the gridlines in current sheet
   spreadsheet.getActiveSheet().setHiddenGridlines(true);
@@ -61,19 +59,24 @@ function highlight_errors(checkedRange) {
   for (var i = 0; i < cells.length; i++) {
     for (var j = 0; j < cells[i].length; j++) {
       var currentCell = cells[i][j];
+      // Find missing data
       if (currentCell === '#NULL!' || currentCell === '') {
         var columnIndex = columnNumToColumnIndex(j);
         var rowIndex = String(i+1);
         checkedDataSheet.getRange(columnIndex+rowIndex).setBackground('yellow');
         
         emptyCells.push(columnIndex+rowIndex);
-      } else if (currentCell instanceof Error) { //Use this line if data is not string
+      }
+      // Find error data excluding missing ones 
+      else if (currentCell instanceof Error) { //Use this line if data is not string
         var columnIndex = columnNumToColumnIndex(j);
         var rowIndex = String(i+1);
         checkedDataSheet.getRange(columnIndex+rowIndex).setBackground('pink');
         
         errorCells.push(columnIndex+rowIndex);
-      } else if (errorTypes.indexOf(currentCell) !== -1) { //Use this line if data is string
+      }
+      // Find error data excluding missing ones 
+      else if (errorTypes.indexOf(currentCell) !== -1) { //Use this line if data is string
         var columnIndex = columnNumToColumnIndex(j);
         var rowIndex = String(i+1);
         checkedDataSheet.getRange(columnIndex+rowIndex).setBackground('pink');
@@ -84,11 +87,8 @@ function highlight_errors(checkedRange) {
     }
   }
   
-  // Logger.log('Number of empty cells: ' + emptyCells.length);
-  // Logger.log('Number of error cells: ' + errorCells.length);
   
-  var summary = [numRowValue, numColumnValue, emptyCells, errorCells, checkedDataSheet];
-  return summary;
+  return [numRowValue, numColumnValue, emptyCells, errorCells, checkedDataSheet];
 };
 
 
@@ -120,7 +120,7 @@ function countValuesInColumns(array) {
   return columnCounts;
 }
 // Minor 2
-function columnNameErrorCounts(array, inputColumnName, inputColumnCount, startingRow, fromDataSheet, toDataSheet) {
+function columnNameErrorCounts(array, inputColumnName, inputDataCount, startingRow, fromDataSheet, toDataSheet) {
   var columnCounts = countValuesInColumns(array);
   var columnCountsLength =  Object.keys(columnCounts).length;
   for (var i=0; i<columnCountsLength; i++) {
@@ -129,7 +129,7 @@ function columnNameErrorCounts(array, inputColumnName, inputColumnCount, startin
     var columnName = fromDataSheet.getRange(key+"1").getValue();
     // set value to report
     toDataSheet.getRange(inputColumnName+String(startingRow+i)).setValue(columnName);
-    toDataSheet.getRange(inputColumnCount+String(startingRow+i)).setValue(value);
+    toDataSheet.getRange(inputDataCount+String(startingRow+i)).setValue(value);
   };
   return;
 }
@@ -137,10 +137,7 @@ function columnNameErrorCounts(array, inputColumnName, inputColumnCount, startin
 function create_report(summary) {
   // Create a new sheet => set name: report
   var spreadsheet = SpreadsheetApp.getActive();
-  if(!spreadsheet.getSheetByName("report")) {
-    spreadsheet.insertSheet().setName("report");
-  };
-  var reportSheet = spreadsheet.getSheetByName("report");
+  var reportSheet = spreadsheet.getSheetByName("report") || spreadsheet.insertSheet().setName("report");
 
   //--- report sheet ---//
   // #Rows
@@ -158,7 +155,7 @@ function create_report(summary) {
   reportSheet.getRange("B5").setValue("Error data");
   reportSheet.getRange("C5").setValue(errorDataArray.length);
 
-  // Error summary: ColumnName: x missing data, y error data
+  // Error summary
   /// Set column names for error summay
   reportSheet.getRange("E2").setValue("Column Name");
   reportSheet.getRange("F2").setValue("Missing data");
@@ -173,7 +170,9 @@ function create_report(summary) {
   /// Iterate through errorDataArray
   columnNameErrorCounts(errorDataArray, "H", "I", 3, checkedDataSheet, reportSheet);
 
-  
+  // Hide the gridlines in current sheet
+  spreadsheet.getActiveSheet().setHiddenGridlines(true);
+  return;
 };
 
 //------- step 4: Custom Menu ------//
