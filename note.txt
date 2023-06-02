@@ -32,3 +32,9 @@ function test() {
   //     }
   //   }
   // }
+  
+  
+  for (var columnIndex in missingDataColumnCounts) {
+    var columnName = checked_data.getRange(columnIndex+"1").getValue();
+    Logger.log(columnName + " = " + missingDataColumnCounts[columnIndex]); 
+  }
